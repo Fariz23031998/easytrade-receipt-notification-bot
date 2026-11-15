@@ -10,28 +10,25 @@ Telegram bot that notifies store staff when shifts open/close and (optionally) w
 
 ## Configuration
 
-Edit `config.json` in the project root:
+Copy the example config and edit secrets locally (do not commit `config.json`):
 
-```json
-{
-    "host": "localhost",
-    "port": 3306,
-    "user": "easytrade",
-    "password": "...",
-    "database": "easytrade_db",
-    "extension_id": 10001,
-    "check_time": 10,
-    "lang": "ru",
-    "activation_code": "CHANGE_ME"
-}
+```bash
+cp example.config.json config.json
 ```
 
-`activation_code` is the shared secret users must send in Telegram before they can subscribe to store notifications. Set it to a non-default value before production use.
+Key settings in `config.json`:
+
+- MySQL connection: `host`, `port`, `user`, `password`, `database`
+- `extension_id` — EasyTrade extension settings id for the bot token
+- `check_time` — poll interval in seconds
+- `lang` — `ru` or `en`
+- `activation_code` — shared secret users must send in Telegram before they can subscribe; set a non-default value before production use
 
 ## Manual run
 
 ```bash
 cd /path/to/easytrade-receipt-notification-bot
+cp example.config.json config.json   # then edit config.json
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ./venv/bin/python main.py

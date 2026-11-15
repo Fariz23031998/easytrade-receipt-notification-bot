@@ -2,10 +2,10 @@
     "host": "localhost",
     "port": 3306,
     "user": "easytrade",
-    "password": "sESMp0z7OI",
+    "password": "masterkey",
     "database": "easytrade_db",
     "extension_id": 10001,
     "check_time": 10,
     "lang": "ru",
-    "activation_code": "secret"
+    "activation_code": "CHANGE_ME"
 }

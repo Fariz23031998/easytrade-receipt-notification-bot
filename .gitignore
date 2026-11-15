@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 logs/
 *.log
+config.json
 receipt_state.json
 shift_state.json
 activated_users.json
