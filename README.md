@@ -21,9 +21,12 @@ Edit `config.json` in the project root:
     "database": "easytrade_db",
     "extension_id": 10001,
     "check_time": 10,
-    "lang": "ru"
+    "lang": "ru",
+    "activation_code": "CHANGE_ME"
 }
 ```
+
+`activation_code` is the shared secret users must send in Telegram before they can subscribe to store notifications. Set it to a non-default value before production use.
 
 ## Manual run
 

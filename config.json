@@ -6,5 +6,6 @@
     "database": "easytrade_db",
     "extension_id": 10001,
     "check_time": 10,
-    "lang": "ru"
+    "lang": "ru",
+    "activation_code": "secret"
 }

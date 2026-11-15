@@ -5,6 +5,7 @@ logs/
 *.log
 receipt_state.json
 shift_state.json
+activated_users.json
 dist/
 build/
 *.spec.bak

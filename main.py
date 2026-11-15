@@ -19,6 +19,7 @@ from telebot.types import (
 from helper import translations, config, write_log_file
 from db import MySQLConnectionManager
 from settings_service import ensure_settings, is_send_sales_enabled
+from activation_service import is_activated, activate_user
 from recipient_service import (
     STORES_PER_PAGE,
     list_stores,
@@ -64,6 +65,7 @@ logger = logging.getLogger(__name__)
 
 CHECK_TIME_SECONDS = max(1, int((config or {}).get("check_time", 10)))
 EXTENSION_ID = int((config or {}).get("extension_id", 10001))
+ACTIVATION_CODE = str((config or {}).get("activation_code") or "").strip()
 
 db = MySQLConnectionManager(
     host=(config or {}).get("host", "localhost"),
@@ -184,9 +186,31 @@ async def send_store_picker(
 
 
 def register_handlers(bot_instance: AsyncTeleBot):
+    async def require_activation(uid: int, chat_id: int) -> bool:
+        if await is_activated(db, uid):
+            return True
+        await bot_instance.send_message(
+            chat_id,
+            t("bot.enter_code", "Send the activation code to unlock notifications."),
+        )
+        return False
+
+    async def require_activation_callback(call: CallbackQuery) -> bool:
+        uid = call.from_user.id
+        if await is_activated(db, uid):
+            return True
+        await bot_instance.answer_callback_query(
+            call.id,
+            text=t("bot.not_activated", "Send the activation code first."),
+            show_alert=True,
+        )
+        return False
+
     @bot_instance.message_handler(commands=["start"])
     async def cmd_start(message: Message):
         try:
+            if not await require_activation(message.from_user.id, message.chat.id):
+                return
             await send_store_picker(message.chat.id, message.from_user.id, page=0)
         except Exception as e:
             logger.exception("cmd_start error: %s", e)
@@ -199,6 +223,8 @@ def register_handlers(bot_instance: AsyncTeleBot):
     async def cmd_mystores(message: Message):
         try:
             uid = message.from_user.id
+            if not await require_activation(uid, message.chat.id):
+                return
             subs = await list_user_subscriptions(db, uid)
             if not subs:
                 await bot_instance.send_message(
@@ -223,6 +249,35 @@ def register_handlers(bot_instance: AsyncTeleBot):
                 message.chat.id, t("bot.error", "Service unavailable.")
             )
 
+    @bot_instance.message_handler(
+        func=lambda m: bool(m.text) and not (m.text or "").startswith("/"),
+        content_types=["text"],
+    )
+    async def cmd_activation_code(message: Message):
+        try:
+            uid = message.from_user.id
+            if await is_activated(db, uid):
+                return
+            code = (message.text or "").strip()
+            if ACTIVATION_CODE and code == ACTIVATION_CODE:
+                activate_user(uid)
+                await bot_instance.send_message(
+                    message.chat.id,
+                    t("bot.code_ok", "Activated. You can subscribe to stores."),
+                )
+                await send_store_picker(message.chat.id, uid, page=0)
+            else:
+                await bot_instance.send_message(
+                    message.chat.id,
+                    t("bot.code_bad", "Invalid activation code."),
+                )
+        except Exception as e:
+            logger.exception("cmd_activation_code error: %s", e)
+            write_log_file(f"cmd_activation_code error: {e}")
+            await bot_instance.send_message(
+                message.chat.id, t("bot.error", "Service unavailable.")
+            )
+
     @bot_instance.callback_query_handler(func=lambda c: c.data == "noop")
     async def cb_noop(call: CallbackQuery):
         await bot_instance.answer_callback_query(call.id)
@@ -232,6 +287,8 @@ def register_handlers(bot_instance: AsyncTeleBot):
     )
     async def cb_stores_page(call: CallbackQuery):
         try:
+            if not await require_activation_callback(call):
+                return
             page = int(call.data.split(":", 1)[1])
             await send_store_picker(
                 call.message.chat.id,
@@ -249,6 +306,8 @@ def register_handlers(bot_instance: AsyncTeleBot):
     )
     async def cb_toggle_store(call: CallbackQuery):
         try:
+            if not await require_activation_callback(call):
+                return
             parts = call.data.split(":")
             obj_id = int(parts[1])
             page = int(parts[2]) if len(parts) > 2 else 0
@@ -279,6 +338,8 @@ def register_handlers(bot_instance: AsyncTeleBot):
     )
     async def cb_subscribe_all(call: CallbackQuery):
         try:
+            if not await require_activation_callback(call):
+                return
             page = int(call.data.split(":", 1)[1])
             uid = call.from_user.id
             uname = display_name(call.from_user)
@@ -302,6 +363,8 @@ def register_handlers(bot_instance: AsyncTeleBot):
     )
     async def cb_unsubscribe_all(call: CallbackQuery):
         try:
+            if not await require_activation_callback(call):
+                return
             page = int(call.data.split(":", 1)[1])
             uid = call.from_user.id
             removed = await unsubscribe_all_stores(db, uid)
@@ -324,6 +387,8 @@ def register_handlers(bot_instance: AsyncTeleBot):
     )
     async def cb_unsubscribe(call: CallbackQuery):
         try:
+            if not await require_activation_callback(call):
+                return
             obj_id = int(call.data.split(":", 1)[1])
             uid = call.from_user.id
             name = await get_store_name(db, obj_id) or str(obj_id)

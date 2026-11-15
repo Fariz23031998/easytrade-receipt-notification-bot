@@ -16,6 +16,7 @@ DEFAULT_CONFIG = {
     "extension_id": 10001,
     "check_time": 10,
     "lang": "ru",
+    "activation_code": "CHANGE_ME",
 }
 
 
