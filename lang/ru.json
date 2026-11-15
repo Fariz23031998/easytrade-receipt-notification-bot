@@ -24,6 +24,8 @@
     "receipt.card": "Карта",
     "receipt.dept": "Долг",
     "receipt.total": "Итого",
+    "receipt.discount": "Скидка",
+    "receipt.has_discount": "Операция со скидкой: {amount}",
     "receipt.object": "Объект",
     "receipt.customer": "Клиент",
     "receipt.cash": "Касса",

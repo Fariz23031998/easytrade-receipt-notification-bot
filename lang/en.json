@@ -24,6 +24,8 @@
     "receipt.card": "Card",
     "receipt.dept": "Dept",
     "receipt.total": "Total",
+    "receipt.discount": "Discount",
+    "receipt.has_discount": "Includes a discount: {amount}",
     "receipt.object": "Store",
     "receipt.customer": "Customer",
     "receipt.cash": "Cash register",

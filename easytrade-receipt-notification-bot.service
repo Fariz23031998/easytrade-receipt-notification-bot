@@ -1,0 +1,17 @@
+[Unit]
+Description=EasyTrade Receipt Notification Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=app
+Group=app
+WorkingDirectory=/srv/easytrade-receipt-notification-bot
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/easytrade-receipt-notification-bot/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

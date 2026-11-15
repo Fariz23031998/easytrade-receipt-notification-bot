@@ -127,7 +127,8 @@ async def get_receipt_lines_for_document(
             """
             SELECT o.opr_id, o.opr_good, o.opr_quantity,
                    COALESCE(g.gd_name, '') AS gd_name,
-                   COALESCE(oap.oap_price1, 0) AS price
+                   COALESCE(oap.oap_price1, 0) AS price,
+                   COALESCE(oap.oap_price2, 0) AS price2
             FROM operations o
             LEFT JOIN dir_goods g ON g.gd_id = o.opr_good
             LEFT JOIN operations_additional_prop oap ON oap.oap_operation = o.opr_id
@@ -144,14 +145,17 @@ async def get_receipt_lines_for_document(
             name = (r.get("gd_name") or "").strip()
             qty = _safe_float(r.get("opr_quantity"))
             price = _safe_float(r.get("price"))
+            price2 = _safe_float(r.get("price2"))
             line_sum = qty * price
             total += line_sum
+            discount = qty * (price2 - price) if price < price2 else 0.0
             result.append(
                 {
                     "name": name or "—",
                     "quantity": qty,
                     "price": price,
                     "sum": line_sum,
+                    "discount": discount,
                 }
             )
         return result, total
@@ -244,14 +248,30 @@ def format_receipt_message(
             f"{translations.get('receipt.card', 'Card')}: `{card_scan}`"
         )
     parts.append("")
+    total_discount = 0.0
     for i, line in enumerate(lines, 1):
         name = (line.get("name") or "—").replace("*", "\\*")
         qty = line.get("quantity", 0)
         price = line.get("price", 0)
         s = line.get("sum", qty * price)
+        discount = _safe_float(line.get("discount"))
+        total_discount += discount
         parts.append(f"{i}. {name}")
         parts.append(
             f"{_format_number(qty)} × {_format_number(price)} = {_format_number(s)}"
+        )
+        if discount > 0:
+            parts.append(
+                f"{translations.get('receipt.discount', 'Discount')}: "
+                f"{_format_number(discount)}"
+            )
+        parts.append("")
+    if total_discount > 0:
+        parts.append(
+            translations.get(
+                "receipt.has_discount",
+                "Includes a discount: {amount}",
+            ).format(amount=_format_number(total_discount))
         )
         parts.append("")
     parts.append(
